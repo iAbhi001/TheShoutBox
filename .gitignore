@@ -1,0 +1,8 @@
+node_modiules
+dist
+build
+*.log
+.DS_Store
+.env
+.idea
+.vscode
