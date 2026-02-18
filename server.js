@@ -1,24 +1,33 @@
 const { WebSocketServer } = require('ws');
-
-// Create a server listening on port 8080
 const wss = new WebSocketServer({ port: 8080 });
 
-console.log("WebSocket server is running on ws://localhost:8080");
+let userCount = 0;
 
 wss.on('connection', (socket) => {
-    console.log("New client connected!");
+    userCount++;
+    console.log(`User joined. Total: ${userCount}`);
 
-    // Listen for messages from a client
-    socket.on('message', (data) => {
-        console.log(`Received: ${data}`);
+    // Notify everyone about the new user count
+    broadcast({ type: 'userCount', count: userCount });
 
-        // Broadcast the message to EVERY connected client
-        wss.clients.forEach((client) => {
-            if (client.readyState === 1) { // Check if the connection is open
-                client.send(data.toString());
-            }
-        });
+    socket.on('message', (rawData) => {
+        const data = JSON.parse(rawData); // We expect JSON now
+        
+        // Relays the message or typing status to everyone else
+        broadcast(data);
     });
 
-    socket.on('close', () => console.log("Client disconnected."));
+    socket.on('close', () => {
+        userCount--;
+        broadcast({ type: 'userCount', count: userCount });
+    });
 });
+
+// Helper function to send JSON to everyone
+function broadcast(data) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === 1) {
+            client.send(JSON.stringify(data));
+        }
+    });
+}
